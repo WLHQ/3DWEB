@@ -1,6 +1,14 @@
 # 3DWEB
 An http server written in C made for the 3DS.
 
+Features:
+
+Creates a directory called "Websites" & an index.html file. You can add your own files in the Websites directory on your SD Card.
+
+TODO:
+
+MIME Types Support: E.g PNGs, JPEGs, etc.
+
 ### Path Handlers
 #### Default Handler  
 	- Path: /  
