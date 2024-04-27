@@ -3,7 +3,7 @@ An http server written in C made for the 3DS. A continuation of 3ds-httpd from d
 
 Features:
 
-Creates a directory called "Websites" & an index.html file. You can add your own files in the Websites directory on your SD Card.
+Creates a directory called "Websites" & an index.html file when the server starts. You can add your own files in the Websites directory on your SD Card. The files put onto your SD Card in the Websites directory will not be overwritten.
 
 TODO:
 
