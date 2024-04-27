@@ -1,5 +1,5 @@
 # 3DWEB
-An http server written in C made for the 3DS.
+An http server written in C made for the 3DS. A continuation of 3ds-httpd from dimaguy. https://github.com/dimaguy/3ds-httpd
 
 Features:
 
