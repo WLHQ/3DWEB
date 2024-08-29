@@ -93,7 +93,7 @@ void init(int port)
         if (index_file == NULL) {
             failExit("Failed to create index.html file: %s (code: %d)\n", strerror(errno), errno);
         } else {
-            const char *html_content = "<html><head><title>Index</title></head><body><h1>Welcome to my website! Place your own index.html file in the Websites directory located on the root of your 3DS SD Card.</h1></body></html>";
+            const char *html_content = "<html><head><title>Index</title></head><body><h1>Welcome! Place your own index.html file in the Websites directory located on the root of your 3DS SD Card.</h1></body></html>";
             fputs(html_content, index_file);
             fclose(index_file);
             printTop("index.html file created: %s\n", index_html);
