@@ -9,7 +9,6 @@ static u32 *socket_buffer = NULL;
 static http_server data;
 http_server *app_data = &data;
 static int ret;
-// static char payload[4098]; // REMOVED: Not thread safe, moved to connection.c
 PrintConsole topScreen, bottomScreen;
 LightLock printLock; // Definition of the lock
 
