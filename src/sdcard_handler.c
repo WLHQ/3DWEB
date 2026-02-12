@@ -1,5 +1,6 @@
 #include "handlers.h"
 #include "mime_type.h"
+#include "path_utils.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,16 @@ http_response *get_sdcard_response(http_request *request)
 {
 	http_response *response = memalloc(sizeof(http_response));
 	if (!response) return NULL;
+
+	if (contains_path_traversal(request->path)) {
+		response->code = 403; // Forbidden
+		const char msg[] = "403 Forbidden";
+		response->payload = memdup(msg, sizeof(msg)-1);
+		response->payload_len = sizeof(msg)-1;
+		const char ct[] = "Content-Type: text/plain\r\n";
+		response->content_type = memdup(ct, sizeof(ct)-1);
+		return response;
+	}
 
 	// Logic from original: extract path after /sdcard
 	// request->path: /sdcard/Websites/file.ext
