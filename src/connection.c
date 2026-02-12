@@ -63,7 +63,6 @@ void handle_client(thread_context *ctx)
         free(ctx);
         return;
     }
-    memset(payload, 0, 4098);
 
     // Set socket timeout to 10 seconds to prevent zombie threads using select
     fd_set readfds;
