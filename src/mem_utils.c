@@ -1,12 +1,12 @@
 #include "httpserver.h"
 #include "mem_utils.h"
+#include <stdlib.h>
 
 void *memalloc(size_t size)
 {
-	void *res = linearAlloc(size);
-	if (!res)
-		failExit("alloc: cannot allocate %d bytes!\n", size);
-	else
+	// Use standard malloc which is thread-safe in newlib
+	void *res = malloc(size);
+	if (res)
 		memset(res, 0, size);
 	return (res);
 }
@@ -14,12 +14,15 @@ void *memalloc(size_t size)
 void *memdup(const void *data, size_t size)
 {
 	void *res = memalloc(size);
-	memcpy(res, data, size);
+	if (res)
+		memcpy(res, data, size);
 	return res;
 }
 
 void memdel(void **data)
 {
-	linearFree(*data);
-	*data = NULL;
+	if (*data) {
+		free(*data);
+		*data = NULL;
+	}
 }

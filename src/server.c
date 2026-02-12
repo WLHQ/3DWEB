@@ -9,8 +9,8 @@ static u32 *socket_buffer = NULL;
 static http_server data;
 http_server *app_data = &data;
 static int ret;
-static char payload[4098];
 PrintConsole topScreen, bottomScreen;
+LightLock printLock; // Definition of the lock
 
 void socShutdown()
 {
@@ -25,6 +25,7 @@ void init(int port)
     gfxInitDefault(); // graphics
     consoleInit(GFX_TOP, &topScreen);
     consoleInit(GFX_BOTTOM, &bottomScreen);
+    LightLock_Init(&printLock); // Initialize the lock
     fsInit();
     consoleDebugInit(debugDevice_CONSOLE);
     init_handlers();
@@ -52,6 +53,18 @@ void init(int port)
     if (data.server_id < 0)
         failExit("socket: %s (code: %d)\n", strerror(errno), errno);
 
+    // --- OPTIMIZATION START ---
+    // Dynamische Buffer-Größe setzen
+    setsockopt(data.server_id, SOL_SOCKET, SO_SNDBUF, &sys_conf.socket_buffer_size, sizeof(sys_conf.socket_buffer_size));
+    setsockopt(data.server_id, SOL_SOCKET, SO_RCVBUF, &sys_conf.socket_buffer_size, sizeof(sys_conf.socket_buffer_size));
+
+    if (sys_conf.is_new_3ds) {
+        printTop("System: New 3DS (High Performance Mode)\n");
+    } else {
+        printTop("System: Old 3DS (Legacy Mode)\n");
+    }
+    // --- OPTIMIZATION ENDE ---
+
     // Init server_addr on default address and port 8081
     data.server_addr.sin_family = AF_INET;
     data.server_addr.sin_port = htons(port);
@@ -59,8 +72,8 @@ void init(int port)
     data.client_length = sizeof(data.client_addr);
 
     // Create directory and index.html file on SD card
-    const char *directory = "Websites"; // Change this to your desired directory
-    const char *index_html = "index.html"; // Change this to your desired index.html path
+    const char *directory = "Websites"; 
+    const char *index_html = "index.html"; 
 
     // Check if the directory already exists
     struct stat dir_stat;
@@ -120,26 +133,25 @@ void init(int port)
 
 int loop()
 {
-    data.client_id = accept(data.server_id, (struct sockaddr *) &data.client_addr, &data.client_length);
-    if (data.client_id < 0 && errno != EAGAIN)
-        failExit("accept: %d %s\n", errno, strerror(errno));
+    // Use local variables for accept to be thread-safe regarding data struct
+    struct sockaddr_in client_addr;
+    u32 client_length = sizeof(client_addr);
+    
+    s32 client_id = accept(data.server_id, (struct sockaddr *) &client_addr, &client_length);
+    
+    if (client_id < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+            failExit("accept: %d %s\n", errno, strerror(errno));
+    }
     else
     {
         // set client socket to blocking to simplify sending data back
-        fcntl(data.client_id, F_SETFL, fcntl(data.client_id, F_GETFL, 0) & ~O_NONBLOCK);
-        // reset old payload
-        memset(payload, 0, 4098);
-
-        // Read 1024 bytes (FIXME: dynamic size)
-        ret    = recv(data.client_id, payload, 4096, 0);
-
-        // HTTP 1.1?
-        if (strstr(payload, "HTTP/1.1"))
-            manage_connection(&data, payload);
-
-        // End connection
-        close(data.client_id);
-        data.client_id = -1;
+        fcntl(client_id, F_SETFL, fcntl(client_id, F_GETFL, 0) & ~O_NONBLOCK);
+        
+        // Spawn a thread to handle the connection
+        start_connection_thread(&data, client_id, client_addr);
+        
+        // Do NOT close client_id here, the thread will do it!
     }
     return data.running;
 }
