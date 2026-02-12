@@ -4,6 +4,8 @@
 
 This project is a heavily modified and modernized continuation of `3ds-httpd` by dimaguy.
 
+This project includes modifications by WLHQ (which also changed the name of the program to 3DWEB) that allow easier use of websites sitting on the Nintendo 3DS SD Card
+
 
 ## Features
 
@@ -55,6 +57,7 @@ make
 ## Credits
 
 *   **Original Author:** [dimaguy](https://github.com/dimaguy/3ds-httpd)
-*   **ME:** [Rawrvlxx](https://github.com/settledinmisery-spec)
+*   **3DWEB Maintainer:** [WLHQ](https://github.com/WLHQ)
+*   **Current Maintainer:** [Rawrvlxx](https://github.com/settledinmisery-spec)
 
 Licensed under the MIT License.
