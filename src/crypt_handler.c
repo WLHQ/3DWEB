@@ -1,4 +1,5 @@
 #include "handlers.h"
+#include <string.h>
 
 #define MAX_CRYPT_BYTES 0x400
 
@@ -136,11 +137,8 @@ static int do_crypto_request(char *path, char *outbuf)
 
 	int buf_l = 0;
 
-	for (int i = 0; i < MAX_CRYPT_BYTES; i++)
-	{
-		inbuf[i] = 0;
-		outbuf[i] = 0;
-	}
+	memset(inbuf, 0, MAX_CRYPT_BYTES);
+	memset(outbuf, 0, MAX_CRYPT_BYTES);
 
 	char *dup = strdup(path);
 	int param = 0;
