@@ -42,8 +42,7 @@ int		startWith(char *str, char *start)
 {
 	if (!str || !start)
 		return (0);
-	int startlen = strlen(start);
-	return startlen <= strlen(str) && strncmp(str, start, startlen) == 0;
+	return strncmp(str, start, strlen(start)) == 0;
 }
 // --------------------------------------------------------------------------
 
