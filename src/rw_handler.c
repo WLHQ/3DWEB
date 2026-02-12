@@ -19,16 +19,21 @@ static unsigned char decode_hex(char c)
 	return 0; // pls
 }
 
-int is_read_request(http_request *request)
-{
-	if (!startWith(request->path, "/readmem/") || strlen(request->path) < 9) // Ensure valid tokenization
-		return 0;
-		
-	char *dup = strdup(request->path);
-	int numParams = 0;
-	int valid = 1;
-	int l = 0;
+typedef struct {
 	uint32_t addr;
+	int len;
+	int valid;
+} ReadParams;
+
+static ReadParams parse_read_request(const char *path)
+{
+	ReadParams params = {0, 0, 1};
+	if (!path || strlen(path) < 1) {
+		params.valid = 0;
+		return params;
+	}
+	char *dup = strdup(path);
+	int numParams = 0;
 	
 	char *p = strtok(dup+1, "/");
 	
@@ -40,68 +45,55 @@ int is_read_request(http_request *request)
 		switch(numParams)
 		{
 			case 1:
-				addr = strtoul(p, NULL, 16);
-				if (addr == 0 || addr == 0xFFFFFFFF)
-					valid = 0;
+				params.addr = strtoul(p, NULL, 16);
+				if (params.addr == 0 || params.addr == 0xFFFFFFFF)
+					params.valid = 0;
 				break;
 			case 2:
-				l = atoi(p);
-				if (l <= 0 || l > 256)
-					valid = 0;
+				params.len = atoi(p);
+				if (params.len <= 0 || params.len > MAX_RW_BYTES)
+					params.valid = 0;
 				break;
 			default:
-				valid = 0;
+				params.valid = 0;
 				break;
 		}
 		p = strtok(NULL, "/");
 	}
 	
 	if (numParams != 2)
-		valid = 0;
+		params.valid = 0;
 	
 	free(dup);
-	return valid;
+	return params;
+}
 
+int is_read_request(http_request *request)
+{
+	if (!startWith(request->path, "/readmem/") || strlen(request->path) < 9) // Ensure valid tokenization
+		return 0;
+
+	ReadParams params = parse_read_request(request->path);
+	return params.valid;
 }
 
 static int do_read_request(char *path, char *outbuf)
-{        
-	char *dup = strdup(path);
-	int numParams = 0;
-	int l = 0;
-	uint32_t addr;
+{
+	ReadParams params = parse_read_request(path);
 	
-	char *p = strtok(dup+1, "/");
-	
-	p = strtok(NULL, "/"); // "readmem/"
-	
-	while (p != NULL)
-	{
-		numParams++;
-		switch(numParams)
-		{
-			case 1:
-				addr = strtoul(p, NULL, 16);
-				break;
-			case 2:
-				l = atoi(p);
-				break;
-			default:
-				break;
-		}
-		p = strtok(NULL, "/");
-	}
+	if (!params.valid)
+		return 0;
+
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-	printTop("Reading %d bytes from 0x%08lX\n", l, (uint32_t)addr);
+	printTop("Reading %d bytes from 0x%08lX\n", params.len, (uint32_t)params.addr);
 	#pragma GCC diagnostic pop
-	for (int i = 0; i < l; i++)
+	for (int i = 0; i < params.len; i++)
 	{
-		((uint8_t *)outbuf)[i] = ((uint8_t *)addr)[i];
+		((uint8_t *)outbuf)[i] = ((uint8_t *)params.addr)[i];
 	}
 	
-	free(dup);
-	return l;
+	return params.len;
 }
 
 http_response *get_read_handler_response(http_request *request)
