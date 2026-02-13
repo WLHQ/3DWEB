@@ -31,27 +31,41 @@ static void compute_path(http_request *request)
 
 void send_response(s32 client_id, http_response *response)
 {
-	char headerBuffer[2048]; 
-	memset(headerBuffer, 0, sizeof(headerBuffer));
+    size_t header_len_needed = 256; // Standardgröße, falls Content-Type kurz ist
+
+    if (response->content_type) {
+        header_len_needed += strlen(response->content_type);
+    }
+    // Zusätzlicher Puffer für Statuszeile, Server, Connection, Content-Length und \r\n\r\n
+    header_len_needed += 100; 
+
+    char *headerBuffer = memalloc(header_len_needed);
+    if (!headerBuffer) {
+        printTop("send_response: Failed to allocate headerBuffer!\n");
+        return;
+    }
+    memset(headerBuffer, 0, header_len_needed);
 	
 	int len = 0;
 	
-	len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, 
+	len += snprintf(headerBuffer + len, header_len_needed - len, 
 	         HTTP_HEADER_TEMPLATE, response->code, get_http_code_name(response->code));
 	
 	if (response->content_type) {
-		len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, "%s", response->content_type);
+		len += snprintf(headerBuffer + len, header_len_needed - len, "%s", response->content_type);
 	}
-	len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, "Server: 3ds-httpd\r\n");
-	len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, "Connection: close\r\n");
-	len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, "Content-Length: %u\r\n", response->payload_len);
-	len += snprintf(headerBuffer + len, sizeof(headerBuffer) - len, "\r\n");
+	len += snprintf(headerBuffer + len, header_len_needed - len, "Server: 3ds-httpd\r\n");
+	len += snprintf(headerBuffer + len, header_len_needed - len, "Connection: close\r\n");
+	len += snprintf(headerBuffer + len, header_len_needed - len, "Content-Length: %u\r\n", response->payload_len);
+	len += snprintf(headerBuffer + len, header_len_needed - len, "\r\n");
 	
 	send(client_id, headerBuffer, len, 0);
 
 	if (response->payload && response->payload_len > 0) {
 		send(client_id, response->payload, response->payload_len, 0);
 	}
+
+    free(headerBuffer);
 }
 
 void handle_client(thread_context *ctx)
@@ -97,11 +111,26 @@ void handle_client(thread_context *ctx)
         free(ctx);
         return;
     }
+    payload[ret] = '\0'; // Safety termination
 
     http_request *request = memalloc(sizeof(http_request));
     if (!request) { free(payload); close(ctx->client_id); free(ctx); return; }
 
     request->payload = payload;
+    request->client_id = ctx->client_id;
+    request->content_length = 0;
+    request->body_start = NULL;
+    request->initial_body_len = 0;
+
+    // Find Body Separator (\r\n\r\n)
+    char *body_sep = strstr(payload, "\r\n\r\n");
+    if (body_sep) {
+        request->body_start = body_sep + 4;
+        request->initial_body_len = ret - (request->body_start - payload);
+        // Terminate header string to keep strtok happy and safe from eating the body
+        *body_sep = '\0'; 
+    }
+
     char *saveptr;
     request->header = strtok_r(payload, "\r\n", &saveptr);
     if (!request->header) {
@@ -114,14 +143,17 @@ void handle_client(thread_context *ctx)
 
     request->type = get_type(request->header);
 
-    char *rawData = strtok_r(NULL, "\r\n", &saveptr);
-    while (rawData)
+    char *line = strtok_r(NULL, "\r\n", &saveptr);
+    while (line)
     {
-        if (startWith(rawData, "Host: "))
-            request->hostname = rawData + 6;
-        else if (startWith(rawData, "User-Agent: "))
-            request->agent = rawData + 12;
-        rawData = strtok_r(NULL, "\r\n", &saveptr);
+        if (startWith(line, "Host: "))
+            request->hostname = line + 6;
+        else if (startWith(line, "User-Agent: "))
+            request->agent = line + 12;
+        else if (startWith(line, "Content-Length: "))
+            request->content_length = atol(line + 16);
+            
+        line = strtok_r(NULL, "\r\n", &saveptr);
     }
 
     compute_path(request);
