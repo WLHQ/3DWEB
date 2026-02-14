@@ -2,6 +2,7 @@
 #include <string.h>
 
 #define MAX_CRYPT_BYTES 0x400
+#define FCRAM_BASE_ADDRESS 0x15000000
 
 static int is_hex_char(char c)
 {
@@ -137,7 +138,7 @@ static int do_crypto_request(char *path, char *outbuf)
 	unsigned char inbuf[MAX_CRYPT_BYTES];
 	unsigned char iv[0x10];
 
-	uint8_t *FCRAM = (uint8_t *)0x15000000;
+	uint8_t *FCRAM = (uint8_t *)FCRAM_BASE_ADDRESS;
 
 	PS_AESAlgorithm algo = PS_ALGORITHM_CBC_ENC;
 
