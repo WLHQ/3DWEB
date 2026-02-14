@@ -2,6 +2,7 @@
 #include "mime_type.h"
 #include "path_utils.h"
 #include "http_utils.h"
+#include "mem_utils.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,7 +129,7 @@ http_response *handle_file_upload(http_request *request, const char *path) {
 			while (total_written < request->content_length) {
 				size_t to_read = 8192;
 				if (request->content_length - total_written < 8192)
-					t	o_read = request->content_length - total_written;
+					to_read = request->content_length - total_written;
 				
 				ssize_t r = recv(request->client_id, buf, to_read, 0);
 				if (r <= 0) break; // Error or disconnect
