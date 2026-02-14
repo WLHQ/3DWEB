@@ -3,16 +3,6 @@
 #include <stdlib.h>
 #include "http_utils.h"
 
-// Stub for startWith, which is used by http_utils.c
-// But http_utils.c only calls get_type, which calls startWith.
-// get_request_name does NOT call startWith.
-// So strict unit testing of get_request_name doesn't even need startWith,
-// BUT linking http_utils.o will require startWith to be resolved because get_type is in there.
-int startWith(char *str, char *start) {
-    if (!str || !start) return 0;
-    return strncmp(str, start, strlen(start)) == 0;
-}
-
 // Minimal implementations for other utils if needed
 int printTop(const char *format, ...) { return 0; }
 int printBottom(const char *format, ...) { return 0; }

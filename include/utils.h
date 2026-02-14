@@ -4,11 +4,18 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
 int	printTop(const char *format, ...);
 int	printBottom(const char *format, ...);
 void clearBottom();
-int	startWith(char *str, char *start);
+
+static inline int startWith(const char *str, const char *start)
+{
+	if (!str || !start)
+		return (0);
+	return strncmp(str, start, strlen(start)) == 0;
+}
 
 __attribute__((format(printf,1,2)))
 void failExit(const char *fmt, ...);
