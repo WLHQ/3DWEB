@@ -31,13 +31,15 @@ static void compute_path(http_request *request)
 
 void send_response(s32 client_id, http_response *response)
 {
-    size_t header_len_needed = 256; // Standardgröße, falls Content-Type kurz ist
+    size_t header_len_needed = 256; 
 
     if (response->content_type) {
         header_len_needed += strlen(response->content_type);
     }
-    // Zusätzlicher Puffer für Statuszeile, Server, Connection, Content-Length und \r\n\r\n
-    header_len_needed += 100; 
+    if (response->additional_headers) {
+        header_len_needed += strlen(response->additional_headers);
+    }
+    header_len_needed += 100; // Puffer für Statuszeile, Server, Connection, Content-Length und \r\n\r\n
 
     char *headerBuffer = memalloc(header_len_needed);
     if (!headerBuffer) {
@@ -54,8 +56,16 @@ void send_response(s32 client_id, http_response *response)
 	if (response->content_type) {
 		len += snprintf(headerBuffer + len, header_len_needed - len, "%s", response->content_type);
 	}
+    if (response->additional_headers) {
+        len += snprintf(headerBuffer + len, header_len_needed - len, "%s", response->additional_headers);
+    }
 	len += snprintf(headerBuffer + len, header_len_needed - len, "Server: 3ds-httpd\r\n");
-	len += snprintf(headerBuffer + len, header_len_needed - len, "Connection: close\r\n");
+    // Standardmäßig Connection: close, es sei denn response->keep_alive ist gesetzt
+    if (response->keep_alive) {
+	    len += snprintf(headerBuffer + len, header_len_needed - len, "Connection: keep-alive\r\n");
+    } else {
+	    len += snprintf(headerBuffer + len, header_len_needed - len, "Connection: close\r\n");
+    }
 	len += snprintf(headerBuffer + len, header_len_needed - len, "Content-Length: %u\r\n", response->payload_len);
 	len += snprintf(headerBuffer + len, header_len_needed - len, "\r\n");
 	
@@ -179,6 +189,8 @@ void handle_client(thread_context *ctx)
             response->content_type = (char*)memdup(DEFAULT_PAGE.content_type, strlen(DEFAULT_PAGE.content_type));
             response->payload = (char*)memdup(DEFAULT_PAGE.payload, strlen(DEFAULT_PAGE.payload));
             response->payload_len = strlen(DEFAULT_PAGE.payload);
+            response->keep_alive = 0; // Initialize
+            response->additional_headers = NULL; // Initialize
         }
     }
 

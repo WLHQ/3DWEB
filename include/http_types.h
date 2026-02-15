@@ -48,6 +48,8 @@ typedef struct
 	char *content_type;
 	int payload_len;
 	char *payload;
+	u8 keep_alive;
+	char *additional_headers;
 } http_response;
 
 typedef int (*is_handler)(http_request*);
