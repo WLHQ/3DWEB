@@ -36,6 +36,10 @@ typedef struct
 	char *hostname;
 	char *path;
 	char *payload;
+	s32 client_id;
+	long content_length;
+	char *body_start;
+	int initial_body_len;
 } http_request;
 
 typedef struct

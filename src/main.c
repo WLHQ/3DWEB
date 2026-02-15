@@ -66,12 +66,12 @@ int	main(int ac, char **av)
 		
 		if (kDown & KEY_L) {
 			manualpage--;
-			if (manualpage < 0) manualpage = 7;
+			if (manualpage < 0) manualpage = 8;
 			manual(manualpage);
 		}
 		if (kDown & KEY_R) {
 			manualpage++;
-			if (manualpage > 7) manualpage = 0;
+			if (manualpage > 8) manualpage = 0;
 			manual(manualpage);
 		}
 	}

@@ -6,13 +6,6 @@
 // Include mocks first to ensure types are defined
 #include "mocks/3ds.h"
 
-// Mock for startWith (used by rw_handler.c)
-// utils.h signature: int startWith(char *str, char *start);
-int startWith(char *str, char *start) {
-    if (!str || !start) return 0;
-    return strncmp(str, start, strlen(start)) == 0;
-}
-
 // Mock for memalloc
 void* memalloc(size_t size) {
     return calloc(1, size);
