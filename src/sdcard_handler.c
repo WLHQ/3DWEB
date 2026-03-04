@@ -28,6 +28,8 @@ int is_sdcard_handler(http_request *request)
 
 http_response *handle_directory_listing(const char *path) {
 	http_response *response = memalloc(sizeof(http_response));
+    response->keep_alive = 0; // Initialize
+    response->additional_headers = NULL; // Initialize
 	DIR *d;
 	struct dirent *dir;
 	d = opendir(path);
@@ -98,11 +100,18 @@ http_response *handle_directory_listing(const char *path) {
 	response->payload_len = strlen(json);
 	const char ct[] = "Content-Type: application/json\r\n";
 	response->content_type = memdup(ct, sizeof(ct)-1);
+    
+    // Directory listings should not be cached or keep-alive
+    response->keep_alive = 0; 
+    response->additional_headers = NULL;
+
 	return response;
 }
 
 http_response *handle_file_upload(http_request *request, const char *path) {
 	http_response *response = memalloc(sizeof(http_response));
+    response->keep_alive = 0; // Initialize
+    response->additional_headers = NULL; // Initialize
 	
 	FILE *f = fopen(path, "wb");
 	if (!f) {
@@ -166,6 +175,8 @@ http_response *get_sdcard_response(http_request *request)
 	// Security check for buffer overflow before decoding
 	if (strlen(request->path) >= 1024) {
 		http_response *response = memalloc(sizeof(http_response));
+		response->keep_alive = 0; // Initialize
+		response->additional_headers = NULL; // Initialize
 		response->code = 414; // URI Too Long
 		const char msg[] = "414 URI Too Long";
 		response->payload = memdup(msg, sizeof(msg)-1);
@@ -178,6 +189,8 @@ http_response *get_sdcard_response(http_request *request)
 
 	if (contains_path_traversal(decoded_path)) {
 		http_response *response = memalloc(sizeof(http_response));
+		response->keep_alive = 0; // Initialize
+		response->additional_headers = NULL; // Initialize
 		response->code = 403; 
 		const char msg[] = "403 Forbidden";
 		response->payload = memdup(msg, sizeof(msg)-1);
@@ -206,6 +219,8 @@ http_response *get_sdcard_response(http_request *request)
 
 	// Regular File Download
 	http_response *response = memalloc(sizeof(http_response));
+    response->keep_alive = 0; // Initialize
+    response->additional_headers = NULL; // Initialize
 	FILE *fptr = fopen(realPath, "rb");
 	
 	if (fptr == NULL) {
@@ -239,7 +254,16 @@ http_response *get_sdcard_response(http_request *request)
 		char ct_buf[128];
 		snprintf(ct_buf, sizeof(ct_buf), "Content-Type: %s\r\n", mime);
 		response->content_type = memdup(ct_buf, strlen(ct_buf));
+
+        // Add Cache-Control header for static files (e.g., 1 hour)
+        // memdup will allocate memory for this header. It needs to be freed later.
+        response->additional_headers = memdup("Cache-Control: public, max-age=3600\r\n", strlen("Cache-Control: public, max-age=3600\r\n") + 1);
 	}
+    
+    // Set keep_alive true for successful file downloads for performance
+    if (response->code == 200) {
+        response->keep_alive = 1;
+    }
 	
 	return response;    
 }
