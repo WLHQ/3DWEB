@@ -186,8 +186,7 @@ void handle_client(thread_context *ctx)
         response = memalloc(sizeof(http_response));
         if (response) {
             response->code = DEFAULT_PAGE.code;
-            response->content_type = (char*)memdup(DEFAULT_PAGE.content_type, strlen(DEFAULT_PAGE.content_type));
-            response->payload = (char*)memdup(DEFAULT_PAGE.payload, strlen(DEFAULT_PAGE.payload));
+            	response->content_type = (char*)memdup(DEFAULT_PAGE.content_type, strlen(DEFAULT_PAGE.content_type) + 1);            response->payload = (char*)memdup(DEFAULT_PAGE.payload, strlen(DEFAULT_PAGE.payload));
             response->payload_len = strlen(DEFAULT_PAGE.payload);
             response->keep_alive = 0; // Initialize
             response->additional_headers = NULL; // Initialize

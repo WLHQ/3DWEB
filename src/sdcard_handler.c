@@ -41,7 +41,7 @@ http_response *handle_directory_listing(const char *path) {
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		const char ct[] = "Content-Type: text/plain\r\n";
-		response->content_type = memdup(ct, sizeof(ct)-1);
+		response->content_type = memdup(ct, sizeof(ct));
 		return response;
 	}
 
@@ -99,7 +99,7 @@ http_response *handle_directory_listing(const char *path) {
 	response->payload = json;
 	response->payload_len = strlen(json);
 	const char ct[] = "Content-Type: application/json\r\n";
-	response->content_type = memdup(ct, sizeof(ct)-1);
+	response->content_type = memdup(ct, sizeof(ct));
     
     // Directory listings should not be cached or keep-alive
     response->keep_alive = 0; 
@@ -113,6 +113,7 @@ http_response *handle_file_upload(http_request *request, const char *path) {
     response->keep_alive = 0; // Initialize
     response->additional_headers = NULL; // Initialize
 	
+    remove(path); // Workaround for 3DS FATfs not always truncating with "wb"
 	FILE *f = fopen(path, "wb");
 	if (!f) {
 		response->code = 500;
@@ -166,7 +167,7 @@ http_response *handle_file_upload(http_request *request, const char *path) {
 	}
 
 	const char ct[] = "Content-Type: text/plain\r\n";
-	response->content_type = memdup(ct, sizeof(ct)-1);
+	response->content_type = memdup(ct, sizeof(ct));
 	return response;
 }
 
@@ -230,7 +231,7 @@ http_response *get_sdcard_response(http_request *request)
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		const char ct[] = "Content-Type: text/plain\r\n";
-		response->content_type = memdup(ct, sizeof(ct)-1);
+		response->content_type = memdup(ct, sizeof(ct));
 	} else {
 		fseek(fptr, 0, SEEK_END);
 		size_t fileSize = ftell(fptr);
@@ -253,7 +254,7 @@ http_response *get_sdcard_response(http_request *request)
 		const char *mime = get_mime_type(realPath);
 		char ct_buf[128];
 		snprintf(ct_buf, sizeof(ct_buf), "Content-Type: %s\r\n", mime);
-		response->content_type = memdup(ct_buf, strlen(ct_buf));
+		response->content_type = memdup(ct_buf, strlen(ct_buf) + 1);
 
         // Add Cache-Control header for static files (e.g., 1 hour)
         // memdup will allocate memory for this header. It needs to be freed later.
