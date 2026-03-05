@@ -14,28 +14,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install devkitPro toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget git curl ca-certificates
+        sudo apt-get install -y apt-transport-https gnupg
 
-    - name: Install devkitPro
-      run: |
-        wget https://apt.devkitpro.org/install-devkitpro-pacman
-        chmod +x install-devkitpro-pacman
-        sudo ./install-devkitpro-pacman
+        sudo mkdir -p /etc/apt/keyrings
+        curl https://apt.devkitpro.org/devkitpro-pub.gpg \
+        | gpg --dearmor \
+        | sudo tee /etc/apt/keyrings/devkitpro.gpg > /dev/null
 
-        export PATH=/opt/devkitpro/pacman/bin:$PATH
+        echo "deb [signed-by=/etc/apt/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" \
+        | sudo tee /etc/apt/sources.list.d/devkitpro.list
 
-        sudo dkp-pacman -Syu --noconfirm
-        sudo dkp-pacman -S --noconfirm devkitARM 3ds-dev 3ds-tools
+        sudo apt-get update
+        sudo apt-get install -y devkitARM 3ds-dev 3ds-tools
 
     - name: Setup devkitPro environment
       run: |
         echo "DEVKITPRO=/opt/devkitpro" >> $GITHUB_ENV
         echo "DEVKITARM=/opt/devkitpro/devkitARM" >> $GITHUB_ENV
-        echo "/opt/devkitpro/devkitARM/bin" >> $GITHUB_PATH
         echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
+        echo "/opt/devkitpro/devkitARM/bin" >> $GITHUB_PATH
 
     - name: Build project
       run: make
