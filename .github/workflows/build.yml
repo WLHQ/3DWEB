@@ -1,50 +1,41 @@
-name: Build 3DWEB CIA
+name: Build 3DWEB
 
 on:
   push:
-    branches: [ main ]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install devkitPro toolchain
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y apt-transport-https gnupg
+      - name: Install CIA tools
+        run: |
+          apt update
+          apt install -y p7zip-full
 
-        sudo mkdir -p /etc/apt/keyrings
-        curl https://apt.devkitpro.org/devkitpro-pub.gpg \
-        | gpg --dearmor \
-        | sudo tee /etc/apt/keyrings/devkitpro.gpg > /dev/null
+          curl -L https://github.com/Epicpkmn11/bannertool/releases/latest/download/bannertool.zip -o bannertool.zip
+          7z e bannertool.zip linux-x86_64/bannertool
+          chmod +x bannertool
+          mv bannertool /usr/local/bin
 
-        echo "deb [signed-by=/etc/apt/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" \
-        | sudo tee /etc/apt/sources.list.d/devkitpro.list
+          curl -L https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.17/makerom-v0.17-ubuntu_x86_64.zip -o makerom.zip
+          7z e makerom.zip
+          chmod +x makerom
+          mv makerom /usr/local/bin
 
-        sudo apt-get update
-        sudo apt-get install -y devkitARM 3ds-dev 3ds-tools
+      - name: Build
+        run: make
 
-    - name: Setup devkitPro environment
-      run: |
-        echo "DEVKITPRO=/opt/devkitpro" >> $GITHUB_ENV
-        echo "DEVKITARM=/opt/devkitpro/devkitARM" >> $GITHUB_ENV
-        echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
-        echo "/opt/devkitpro/devkitARM/bin" >> $GITHUB_PATH
-
-    - name: Build project
-      run: make
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: 3DWEB-build
-        path: |
-          *.cia
-          *.3dsx
-          *.elf
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3dweb-build
+          path: |
+            *.cia
+            *.3dsx
+            *.elf
