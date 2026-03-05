@@ -17,6 +17,16 @@ static inline int startWith(const char *str, const char *start)
 	return strncmp(str, start, strlen(start)) == 0;
 }
 
+static inline int endsWith(const char *str, const char *suffix) {
+    if (!str || !suffix)
+        return 0;
+    size_t len_str = strlen(str);
+    size_t len_suffix = strlen(suffix);
+    if (len_suffix > len_str)
+        return 0;
+    return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
+}
+
 __attribute__((format(printf,1,2)))
 void failExit(const char *fmt, ...);
 #endif
