@@ -50,14 +50,13 @@ http_response *handle_directory_listing(const char *path) {
 	char *json = memalloc(buf_size);
 	if (!json) { closedir(d); return NULL; }
 	
-	strcpy(json, "[");
+	size_t offset = 0;
+	json[offset++] = '[';
+	json[offset] = '\0';
 	int first = 1;
 
 	while ((dir = readdir(d)) != NULL) {
 		if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0) continue;
-
-		if (!first) strcat(json, ",");
-		first = 0;
 
 		char fullPath[512];
 		// Avoid double slashes
@@ -83,21 +82,25 @@ http_response *handle_directory_listing(const char *path) {
 		}
 		
 		char entry[512];
-		snprintf(entry, sizeof(entry), "{\"name\":\"%s\",\"type\":\"%s\",\"size\":%lu}", 
-			dir->d_name, type, (unsigned long)size);
+		int entry_len = snprintf(entry, sizeof(entry), "%s{\"name\":\"%s\",\"type\":\"%s\",\"size\":%lu}",
+			first ? "" : ",", dir->d_name, type, (unsigned long)size);
 		
-		if (strlen(json) + strlen(entry) < buf_size - 10) {
-			strcat(json, entry);
+		if (entry_len > 0 && offset + entry_len < buf_size - 2) { // Reserve space for closing ']' and '\0'
+			memcpy(json + offset, entry, entry_len);
+			offset += entry_len;
+			json[offset] = '\0';
+			first = 0;
 		} else {
 			break;
 		}
 	}
-	strcat(json, "]");
+	json[offset++] = ']';
+	json[offset] = '\0';
 	closedir(d);
 
 	response->code = 200;
 	response->payload = json;
-	response->payload_len = strlen(json);
+	response->payload_len = offset;
 	const char ct[] = "Content-Type: application/json\r\n";
 	response->content_type = memdup(ct, sizeof(ct));
     
