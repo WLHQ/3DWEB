@@ -108,16 +108,78 @@ http_response *handle_directory_listing(const char *path) {
 	return response;
 }
 
+// Handles DELETE requests for files on the SD card with security checks
+http_response *handle_file_delete(http_request *request, const char *path) {
+    http_response *response = memalloc(sizeof(http_response));
+    response->keep_alive = 0; // Initialize
+    response->additional_headers = NULL; // Initialize
+    response->content_type = memdup("Content-Type: text/plain\r\n", sizeof("Content-Type: text/plain\r\n"));
+
+    // SECURITY: Ensure path is within /sdcard/Websites/ and contains no traversal
+    // The `path` argument here is already relative to /sdcard (e.g., /Websites/file.json)
+    // We need to rebuild the full path for `remove` and then check against a base path.
+    char full_path[1024];
+    snprintf(full_path, sizeof(full_path), "sdmc:%s", path); // Reconstruct full path for `remove`
+
+    // IMPORTANT: Restrict DELETE to the /sdcard/Websites/ directory
+    // And specifically to files starting with "calendar_bk_" for safety or other specified pattern
+    if (!startWith(path, "/Websites/calendar_bk_") || !endsWith(path, ".json") || contains_path_traversal(path)) {
+        response->code = 403; // Forbidden
+        response->payload = memdup("403 Forbidden: Deletion of this file is not allowed.", sizeof("403 Forbidden: Deletion of this file is not allowed."));
+        response->payload_len = sizeof("403 Forbidden: Deletion of this file is not allowed.") - 1;
+        return response;
+    }
+    
+    // Check if the file exists before attempting to delete
+    FILE *f_check = fopen(full_path, "rb");
+    if (!f_check) {
+        response->code = 404; // Not Found
+        response->payload = memdup("404 Not Found: File does not exist.", sizeof("404 Not Found: File does not exist.") - 1);
+        response->payload_len = sizeof("404 Not Found: File does not exist.") - 1;
+        return response;
+    }
+    fclose(f_check); // Close immediately
+
+    if (remove(full_path) == 0) {
+        response->code = 200; // OK
+        response->payload = memdup("200 OK: File deleted successfully.", sizeof("200 OK: File deleted successfully.") - 1);
+        response->payload_len = sizeof("200 OK: File deleted successfully.") - 1;
+    } else {
+        response->code = 500; // Internal Server Error
+        response->payload = memdup("500 Internal Server Error: Failed to delete file.", sizeof("500 Internal Server Error: Failed to delete file.") - 1);
+        response->payload_len = sizeof("500 Internal Server Error: Failed to delete file.") - 1;
+    }
+
+    return response;
+}
+
 http_response *handle_file_upload(http_request *request, const char *path) {
 	http_response *response = memalloc(sizeof(http_response));
     response->keep_alive = 0; // Initialize
     response->additional_headers = NULL; // Initialize
+    response->content_type = memdup("Content-Type: text/plain\r\n", sizeof("Content-Type: text/plain\r\n"));
 	
-	FILE *f = fopen(path, "wb");
+    char full_path[1024];
+    snprintf(full_path, sizeof(full_path), "sdmc:%s", path); // Reconstruct full path
+
+    // Security check: ensure path is within /sdcard/Websites/ or other allowed paths
+    // Similar to handle_file_delete, prevent writing outside safe zones
+    if (!startWith(path, "/Websites/") || contains_path_traversal(path)) {
+        // Specific check for calendar_data.json and calendar_bk_*.json
+        if (! (strcmp(path, "/Websites/calendar_data.json") == 0 || startWith(path, "/Websites/calendar_bk_"))) {
+            response->code = 403; // Forbidden
+            response->payload = memdup("403 Forbidden: Writing to this path is not allowed.", sizeof("403 Forbidden: Writing to this path is not allowed.") - 1);
+            response->payload_len = sizeof("403 Forbidden: Writing to this path is not allowed.") - 1;
+            return response;
+        }
+    }
+
+    remove(full_path); // Workaround for 3DS FATfs not always truncating with "wb"
+	FILE *f = fopen(full_path, "wb");
 	if (!f) {
 		response->code = 500;
 		char msg[1024];
-		snprintf(msg, sizeof(msg), "500 Write Error: '%s'", path);
+		snprintf(msg, sizeof(msg), "500 Write Error: '%s'", full_path);
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		return response;
@@ -165,8 +227,8 @@ http_response *handle_file_upload(http_request *request, const char *path) {
 		response->payload_len = strlen(msg);
 	}
 
-	const char ct[] = "Content-Type: text/plain\r\n";
-	response->content_type = memdup(ct, sizeof(ct)-1);
+	// const char ct[] = "Content-Type: text/plain\r\n"; // Removed as content_type is set at the top.
+	// response->content_type = memdup(ct, sizeof(ct)); 
 	return response;
 }
 
@@ -175,8 +237,6 @@ http_response *get_sdcard_response(http_request *request)
 	// Security check for buffer overflow before decoding
 	if (strlen(request->path) >= 1024) {
 		http_response *response = memalloc(sizeof(http_response));
-		response->keep_alive = 0; // Initialize
-		response->additional_headers = NULL; // Initialize
 		response->code = 414; // URI Too Long
 		const char msg[] = "414 URI Too Long";
 		response->payload = memdup(msg, sizeof(msg)-1);
@@ -189,12 +249,10 @@ http_response *get_sdcard_response(http_request *request)
 
 	if (contains_path_traversal(decoded_path)) {
 		http_response *response = memalloc(sizeof(http_response));
-		response->keep_alive = 0; // Initialize
-		response->additional_headers = NULL; // Initialize
 		response->code = 403; 
 		const char msg[] = "403 Forbidden";
-		response->payload = memdup(msg, sizeof(msg)-1);
-		response->payload_len = sizeof(msg)-1;
+		response->payload = memdup(msg, strlen(msg));
+		response->payload_len = strlen(msg);
 		return response;
 	}
 
@@ -207,6 +265,10 @@ http_response *get_sdcard_response(http_request *request)
 
 	if (!realPath) realPath = "/"; // Root
 
+    // Handle DELETE requests first
+    if (request->type == DELETE) {
+        return handle_file_delete(request, realPath);
+    }
 	// Handle Upload (PUT/POST)
 	if (request->type == PUT || request->type == POST) {
 		return handle_file_upload(request, realPath);
@@ -230,7 +292,7 @@ http_response *get_sdcard_response(http_request *request)
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		const char ct[] = "Content-Type: text/plain\r\n";
-		response->content_type = memdup(ct, sizeof(ct)-1);
+		response->content_type = memdup(ct, sizeof(ct)); // Fix: Added sizeof(ct)
 	} else {
 		fseek(fptr, 0, SEEK_END);
 		size_t fileSize = ftell(fptr);
@@ -253,7 +315,7 @@ http_response *get_sdcard_response(http_request *request)
 		const char *mime = get_mime_type(realPath);
 		char ct_buf[128];
 		snprintf(ct_buf, sizeof(ct_buf), "Content-Type: %s\r\n", mime);
-		response->content_type = memdup(ct_buf, strlen(ct_buf));
+		response->content_type = memdup(ct_buf, strlen(ct_buf) + 1); // Fix: Added +1
 
         // Add Cache-Control header for static files (e.g., 1 hour)
         // memdup will allocate memory for this header. It needs to be freed later.
