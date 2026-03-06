@@ -179,7 +179,7 @@ http_response *handle_file_upload(http_request *request, const char *path) {
 	if (!f) {
 		response->code = 500;
 		char msg[1024];
-		snprintf(msg, sizeof(msg), "500 Write Error: '%s'", full_path);
+		snprintf(msg, sizeof(msg), "500 Write Error: '%.1004s'", full_path);
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		return response;
@@ -292,33 +292,22 @@ http_response *get_sdcard_response(http_request *request)
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		const char ct[] = "Content-Type: text/plain\r\n";
-		response->content_type = memdup(ct, sizeof(ct)); // Fix: Added sizeof(ct)
+		response->content_type = memdup(ct, sizeof(ct));
 	} else {
 		fseek(fptr, 0, SEEK_END);
 		size_t fileSize = ftell(fptr);
-		fseek(fptr, 0, SEEK_SET);
+		fclose(fptr); // Close immediately, will be reopened for streaming
 
-		char *buffer = (char *)memalloc(fileSize);
-		if (buffer) {
-			size_t bytesRead = fread(buffer, 1, fileSize, fptr);
-			response->payload = buffer;
-			response->payload_len = bytesRead;
-			response->code = 200;
-		} else {
-			response->code = 500;
-			response->payload = NULL;
-			response->payload_len = 0;
-		}
+		response->payload = NULL; // No in-memory payload for streaming
+		response->payload_len = fileSize;
+		response->stream_file_path = memdup(realPath, strlen(realPath) + 1); // Store path for streaming
+		response->code = 200;
 		
-		fclose(fptr);
-
 		const char *mime = get_mime_type(realPath);
 		char ct_buf[128];
 		snprintf(ct_buf, sizeof(ct_buf), "Content-Type: %s\r\n", mime);
-		response->content_type = memdup(ct_buf, strlen(ct_buf) + 1); // Fix: Added +1
+		response->content_type = memdup(ct_buf, strlen(ct_buf) + 1);
 
-        // Add Cache-Control header for static files (e.g., 1 hour)
-        // memdup will allocate memory for this header. It needs to be freed later.
         response->additional_headers = memdup("Cache-Control: public, max-age=3600\r\n", strlen("Cache-Control: public, max-age=3600\r\n") + 1);
 	}
     

@@ -50,6 +50,7 @@ typedef struct
 	char *payload;
 	u8 keep_alive;
 	char *additional_headers;
+	char *stream_file_path; // Path for files to be streamed (read chunk by chunk)
 } http_response;
 
 typedef int (*is_handler)(http_request*);

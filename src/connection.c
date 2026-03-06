@@ -71,7 +71,26 @@ void send_response(s32 client_id, http_response *response)
 	
 	send(client_id, headerBuffer, len, 0);
 
-	if (response->payload && response->payload_len > 0) {
+    if (response->stream_file_path) {
+        FILE *fptr = fopen(response->stream_file_path, "rb");
+        if (fptr) {
+            char *stream_buffer = memalloc(4096); // 4KB chunk size
+            if (stream_buffer) {
+                size_t bytes_read;
+                size_t total_sent = 0;
+                while (total_sent < response->payload_len && (bytes_read = fread(stream_buffer, 1, 4096, fptr)) > 0) {
+                    send(client_id, stream_buffer, bytes_read, 0);
+                    total_sent += bytes_read;
+                }
+                memdel((void**)&stream_buffer); // Free stream_buffer
+            }
+            fclose(fptr);
+        } else {
+            printTop("send_response: Failed to open stream file %s\n", response->stream_file_path);
+            const char *error_msg = "Error streaming file.";
+            send(client_id, error_msg, strlen(error_msg), 0);
+        }
+    } else if (response->payload && response->payload_len > 0) {
 		send(client_id, response->payload, response->payload_len, 0);
 	}
 
@@ -200,7 +219,8 @@ void handle_client(thread_context *ctx)
         send_response(ctx->client_id, response);
 
         memdel((void**)&response->content_type);
-        memdel((void**)&response->payload);
+        if (response->payload) memdel((void**)&response->payload); // Free payload only if it was allocated for non-streaming
+        if (response->stream_file_path) memdel((void**)&response->stream_file_path); // Free stream_file_path if allocated
         memdel((void**)&response);
     }
 
