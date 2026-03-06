@@ -6,3 +6,4 @@ output/
 *.elf
 *.3dsx
 *.smdh
+tests/test_data/
