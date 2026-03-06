@@ -16,7 +16,7 @@ jobs:
       - name: Install CIA tools
         run: |
           apt update
-          apt install -y p7zip-full
+          apt install -y p7zip-full curl
 
           curl -L https://github.com/Epicpkmn11/bannertool/releases/latest/download/bannertool.zip -o bannertool.zip
           7z e bannertool.zip linux-x86_64/bannertool
@@ -34,8 +34,10 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: 3DWEB
+          name: 3DWEB-build
           path: |
-            *.cia
-            *.3dsx
-            *.elf
+            **/*.cia
+            **/*.3dsx
+            **/*.3ds
+            **/*.zip
+            **/*.elf
