@@ -41,7 +41,7 @@ http_response *handle_directory_listing(const char *path) {
 		response->payload = memdup(msg, strlen(msg));
 		response->payload_len = strlen(msg);
 		const char ct[] = "Content-Type: text/plain\r\n";
-		response->content_type = memdup(ct, sizeof(ct)-1);
+		response->content_type = memdup(ct, sizeof(ct));
 		return response;
 	}
 
@@ -99,7 +99,7 @@ http_response *handle_directory_listing(const char *path) {
 	response->payload = json;
 	response->payload_len = strlen(json);
 	const char ct[] = "Content-Type: application/json\r\n";
-	response->content_type = memdup(ct, sizeof(ct)-1);
+	response->content_type = memdup(ct, sizeof(ct));
     
     // Directory listings should not be cached or keep-alive
     response->keep_alive = 0; 
