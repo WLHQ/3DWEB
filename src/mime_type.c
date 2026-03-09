@@ -21,6 +21,16 @@ const char* get_mime_type(const char *path) {
 	if (strcasecmp(ext, ".txt") == 0) return "text/plain";
 	if (strcasecmp(ext, ".xml") == 0) return "text/xml";
 	if (strcasecmp(ext, ".pdf") == 0) return "application/pdf";
+	
+	// Audio types
+	if (strcasecmp(ext, ".ogg") == 0) return "audio/ogg";
+	if (strcasecmp(ext, ".mp3") == 0) return "audio/mpeg";
+	if (strcasecmp(ext, ".wav") == 0) return "audio/wav";
+	
+	// Video types
+	if (strcasecmp(ext, ".mp4") == 0) return "video/mp4";
+	if (strcasecmp(ext, ".webm") == 0) return "video/webm";
+	if (strcasecmp(ext, ".mkv") == 0) return "video/x-matroska";
 
 	return "application/octet-stream";
 }
