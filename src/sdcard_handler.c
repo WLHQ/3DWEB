@@ -50,14 +50,28 @@ http_response *handle_directory_listing(const char *path) {
 	char *json = memalloc(buf_size);
 	if (!json) { closedir(d); return NULL; }
 	
+<<<<<<< HEAD
 	size_t offset = 0;
 	json[offset++] = '[';
 	json[offset] = '\0';
+=======
+	strcpy(json, "[");
+	size_t json_len = 1;
+>>>>>>> cbbbf52 (feat: Update socket buffer size and refactor sdcard_handler for directory listing and secure file deletion)
 	int first = 1;
 
 	while ((dir = readdir(d)) != NULL) {
 		if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0) continue;
 
+<<<<<<< HEAD
+=======
+		if (!first) {
+            strcat(json, ",");
+            json_len++;
+        }
+		first = 0;
+
+>>>>>>> cbbbf52 (feat: Update socket buffer size and refactor sdcard_handler for directory listing and secure file deletion)
 		char fullPath[512];
 		// Avoid double slashes
 		if (path[strlen(path)-1] == '/')
@@ -82,6 +96,7 @@ http_response *handle_directory_listing(const char *path) {
 		}
 		
 		char entry[512];
+<<<<<<< HEAD
 		int entry_len = snprintf(entry, sizeof(entry), "%s{\"name\":\"%s\",\"type\":\"%s\",\"size\":%lu}",
 			first ? "" : ",", dir->d_name, type, (unsigned long)size);
 		
@@ -90,17 +105,35 @@ http_response *handle_directory_listing(const char *path) {
 			offset += entry_len;
 			json[offset] = '\0';
 			first = 0;
+=======
+		int entry_len = snprintf(entry, sizeof(entry), "{\"name\":\"%s\",\"type\":\"%s\",\"size\":%lu}", 
+			dir->d_name, type, (unsigned long)size);
+		
+		if (json_len + entry_len < buf_size - 10) {
+			memcpy(json + json_len, entry, entry_len);
+            json_len += entry_len;
+            json[json_len] = '\0';
+>>>>>>> cbbbf52 (feat: Update socket buffer size and refactor sdcard_handler for directory listing and secure file deletion)
 		} else {
 			break;
 		}
 	}
+<<<<<<< HEAD
 	json[offset++] = ']';
 	json[offset] = '\0';
+=======
+	strcat(json, "]");
+	json_len++;
+>>>>>>> cbbbf52 (feat: Update socket buffer size and refactor sdcard_handler for directory listing and secure file deletion)
 	closedir(d);
 
 	response->code = 200;
 	response->payload = json;
+<<<<<<< HEAD
 	response->payload_len = offset;
+=======
+	response->payload_len = json_len;
+>>>>>>> cbbbf52 (feat: Update socket buffer size and refactor sdcard_handler for directory listing and secure file deletion)
 	const char ct[] = "Content-Type: application/json\r\n";
 	response->content_type = memdup(ct, sizeof(ct));
     
@@ -124,9 +157,11 @@ http_response *handle_file_delete(http_request *request, const char *path) {
     char full_path[1024];
     snprintf(full_path, sizeof(full_path), "sdmc:%s", path); // Reconstruct full path for `remove`
 
-    // IMPORTANT: Restrict DELETE to the /sdcard/Websites/ directory
-    // And specifically to files starting with "calendar_bk_" for safety or other specified pattern
-    if (!startWith(path, "/Websites/calendar_bk_") || !endsWith(path, ".json") || contains_path_traversal(path)) {
+    // IMPORTANT: Restrict DELETE to specific allowed directories and patterns
+    int is_calendar_bk = startWith(path, "/Websites/calendar_bk_") && endsWith(path, ".json");
+    int is_kb_file = startWith(path, "/Websites/kb/") && endsWith(path, ".md");
+    
+    if (!(is_calendar_bk || is_kb_file) || contains_path_traversal(path)) {
         response->code = 403; // Forbidden
         response->payload = memdup("403 Forbidden: Deletion of this file is not allowed.", sizeof("403 Forbidden: Deletion of this file is not allowed."));
         response->payload_len = sizeof("403 Forbidden: Deletion of this file is not allowed.") - 1;
