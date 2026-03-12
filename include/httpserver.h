@@ -15,7 +15,7 @@
 #include "utils.h"
 
 #define SOC_ALIGN       0x1000
-#define SOC_BUFFERSIZE  0x100000
+#define SOC_BUFFERSIZE  0x800000
 
 #define HTTP_HEADER_TEMPLATE "HTTP/1.1 %d %s\r\n"
 
