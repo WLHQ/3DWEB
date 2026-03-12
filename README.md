@@ -3,7 +3,7 @@
 3DWEB is a robust, multi-threaded HTTP server written in C, specifically optimized for the Nintendo 3DS hardware. It transforms your handheld console into a capable web server, supporting dynamic content, file serving, and system interactions.
 
 This project is a heavily modified and modernized continuation of `3ds-httpd` by dimaguy.
-
+This project has modifications from WLHQ with the Zero Config setup.
 
 ## Features
 
@@ -55,6 +55,7 @@ make
 ## Credits
 
 *   **Original Author:** [dimaguy](https://github.com/dimaguy/3ds-httpd)
+*   **3DWEB Author:** [WLHQ](https://github.com/WLHQ)
 *   **ME:** [Rawrvlxx](https://github.com/settledinmisery-spec)
 
 Licensed under the MIT License.
