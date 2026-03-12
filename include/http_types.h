@@ -36,6 +36,10 @@ typedef struct
 	char *hostname;
 	char *path;
 	char *payload;
+	s32 client_id;
+	long content_length;
+	char *body_start;
+	int initial_body_len;
 } http_request;
 
 typedef struct
@@ -44,6 +48,9 @@ typedef struct
 	char *content_type;
 	int payload_len;
 	char *payload;
+	u8 keep_alive;
+	char *additional_headers;
+	char *stream_file_path; // Path for files to be streamed (read chunk by chunk)
 } http_response;
 
 typedef int (*is_handler)(http_request*);

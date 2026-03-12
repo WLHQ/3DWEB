@@ -1,0 +1,9 @@
+build/
+output/
+.DS_Store
+*.o
+*.d
+*.elf
+*.3dsx
+*.smdh
+tests/test_data/
