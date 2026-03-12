@@ -72,49 +72,45 @@ void init(int port)
     data.client_length = sizeof(data.client_addr);
 
     // Create directory and index.html file on SD card
-    static bool fs_initialized = false;
-    if (!fs_initialized) {
-        const char *directory = "Websites"; 
-        const char *index_html = "index.html"; 
+    const char *directory = "Websites"; 
+    const char *index_html = "index.html"; 
 
-        // Check if the directory already exists
-        struct stat dir_stat;
-        if (stat(directory, &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode)) {
-            printTop("Directory already exists: %s\n", directory);
-        } else {
-            // Directory does not exist, so create it
-            printTop("Creating directory: %s\n", directory);
-            if (mkdir(directory, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-                if (errno != EEXIST) {
-                    failExit("Failed to create directory: %s (code: %d)\n", strerror(errno), errno);
-                }
-            } else {
-                printTop("Directory created: %s\n", directory);
+    // Check if the directory already exists
+    struct stat dir_stat;
+    if (stat(directory, &dir_stat) == 0 && S_ISDIR(dir_stat.st_mode)) {
+        printTop("Directory already exists: %s\n", directory);
+    } else {
+        // Directory does not exist, so create it
+        printTop("Creating directory: %s\n", directory);
+        if (mkdir(directory, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+            if (errno != EEXIST) {
+                failExit("Failed to create directory: %s (code: %d)\n", strerror(errno), errno);
             }
-        }
-
-        // Change the current working directory to the Websites folder
-        if (chdir(directory) != 0) {
-            failExit("Failed to change directory to %s: %s (code: %d)\n", directory, strerror(errno), errno);
-        }
-
-        // Check if the index.html file already exists
-        if (stat(index_html, &dir_stat) == 0 && S_ISREG(dir_stat.st_mode)) {
-            printTop("index.html file already exists.\n");
         } else {
-            // index.html file does not exist, so create it
-            printTop("Creating index.html file: %s\n", index_html);
-            FILE *index_file = fopen(index_html, "w");
-            if (index_file == NULL) {
-                failExit("Failed to create index.html file: %s (code: %d)\n", strerror(errno), errno);
-            } else {
-                const char *html_content = "<html><head><title>Index</title></head><body><h1>Welcome! Place your own index.html file in the Websites directory located on the root of your 3DS SD Card.</h1></body></html>";
-                fputs(html_content, index_file);
-                fclose(index_file);
-                printTop("index.html file created: %s\n", index_html);
-            }
+            printTop("Directory created: %s\n", directory);
         }
-        fs_initialized = true;
+    }
+
+    // Change the current working directory to the Websites folder
+    if (chdir(directory) != 0) {
+        failExit("Failed to change directory to %s: %s (code: %d)\n", directory, strerror(errno), errno);
+    }
+
+    // Check if the index.html file already exists
+    if (stat(index_html, &dir_stat) == 0 && S_ISREG(dir_stat.st_mode)) {
+        printTop("index.html file already exists.\n");
+    } else {
+        // index.html file does not exist, so create it
+        printTop("Creating index.html file: %s\n", index_html);
+        FILE *index_file = fopen(index_html, "w");
+        if (index_file == NULL) {
+            failExit("Failed to create index.html file: %s (code: %d)\n", strerror(errno), errno);
+        } else {
+            const char *html_content = "<html><head><title>Index</title></head><body><h1>Welcome! Place your own index.html file in the Websites directory located on the root of your 3DS SD Card.</h1></body></html>";
+            fputs(html_content, index_file);
+            fclose(index_file);
+            printTop("index.html file created: %s\n", index_html);
+        }
     }
 
     // Print network info
@@ -144,13 +140,8 @@ int loop()
     s32 client_id = accept(data.server_id, (struct sockaddr *) &client_addr, &client_length);
     
     if (client_id < 0) {
-        if (errno == ENOMEM) {
-            printTop("\n[DEBUG] ACCEPT: Out of memory (Geister-Sockets?).\n");
-            printTop("[DEBUG] Warte auf Garbage Collection...\n");
-            svcSleepThread(1000000000LL); // 1 Sekunde warten, 3DS OS aufräumen lassen
-        } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
             failExit("accept: %d %s\n", errno, strerror(errno));
-        }
     }
     else
     {
