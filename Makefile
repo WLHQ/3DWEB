@@ -34,7 +34,7 @@ APP_INFO := $(RESOURCES)/AppInfo
 BANNER_AUDIO := $(RESOURCES)/audio
 BANNER_IMAGE := $(RESOURCES)/banner
 ICON := $(RESOURCES)/icon.png
-RSF := $(TOPDIR)/$(RESOURCES)/httpd.rsf
+RSF := $(TOPDIR)/$(RESOURCES)/3DWEB.rsf
 
 #---------------------------------------------------------------------------------
 # Build Setup (code generation)
