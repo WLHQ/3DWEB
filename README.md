@@ -57,6 +57,6 @@ make
 
 *   **Original Author:** [dimaguy](https://github.com/dimaguy/3ds-httpd)
 *   **3DWEB Author:** [WLHQ](https://github.com/WLHQ)
-*   **ME:** [Rawrvlxx](https://github.com/settledinmisery-spec)
+*   **Rawrvlxx:** [Rawrvlxx](https://github.com/settledinmisery-spec)
 
 Licensed under the MIT License.
