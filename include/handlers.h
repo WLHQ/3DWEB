@@ -20,4 +20,9 @@ int is_write_request(http_request *request);
 http_response *get_write_handler_response(http_request *request);
 int is_favicon_request(http_request *request);
 http_response *get_favicon_icon(http_request *request);
+
+/* PHP proxy handler (new) */
+int is_php_request(http_request *request);
+http_response *get_php_response(http_request *request);
+
 #endif
